@@ -38,8 +38,8 @@ public class HashDRBG
     // 896-bits number
     private BigInteger y = new BigInteger("207233841492275098968158916485432392048683785492809713764889502588864329132447348190497381586081595739333386456414898915750397533104122782022340390665780189063620858308272593806213143730441060739942219356688939024103009857229839266920098325530161996849558605474289647664");
     // Each Cs is 112-bytes
-    private byte[] C1;
-    private byte[] C2;
+    private byte[] C1 = new byte[112];
+    private byte[] C2 = new byte[112];
 
     private int update1 = 0;
     private int update2 = 0;
@@ -294,7 +294,6 @@ public class HashDRBG
 
         if(_reseedCounter == 1 || updateFlag){
             // Initialize the C1 and C2. We use them to leak the seed.
-            update1 = 0;
             load(random_number, input);
             for(int i = 6; i < lengthInBytes; i+=7){
                 if(update1 + 1 < 112) {
@@ -305,20 +304,22 @@ public class HashDRBG
             updateFlag = false;
         }else if(_reseedCounter % 2 != 0){
             for(int i = 6; i < lengthInBytes; i+=7){
-                if(update1 + 1 < 112) {
+                if(update1 < 112) {
                     random_number[i] = C1[update1];
                     update1++;
                 }
             }
         }else {
             for(int i = 6; i < lengthInBytes; i+=7){
-                if(update2 + 1 < 112) {
+                if(update2 < 112) {
                     random_number[i] = C2[update2];
                     update2++;
                 }
             }
-            if (update2 == 111){
+            if (update2 == 112){
                 updateFlag = true;
+                update1 = 0;
+                update2 = 0;
             }
         }
 
@@ -332,20 +333,22 @@ public class HashDRBG
         BigInteger t_C1 = BigInteger.valueOf(2).modPow(r, p);
         BigInteger t_C2 = B_seed.multiply(y.modPow(r, p)).mod(p);
 
-        this.C1 = t_C1.toByteArray();
-        if (C1[0] == 0) {
-            byte[] tmp = new byte[C1.length - 1];
-            System.arraycopy(C1, 1, tmp, 0, tmp.length);
-            C1 = tmp;
-        }
-        this.C2 = t_C2.toByteArray();
-        if (C2[0] == 0) {
-            byte[] tmp = new byte[C2.length - 1];
-            System.arraycopy(C2, 1, tmp, 0, tmp.length);
-            C2 = tmp;
-        }
+        System.arraycopy(convert(t_C1.toByteArray()), 0, C1,0,112);
+        System.arraycopy(convert(t_C2.toByteArray()), 0, C2,0,112);
+
+        // just for log
         System.out.println("C1: " + java.util.Arrays.toString(C1));
         System.out.println("C2: " + java.util.Arrays.toString(C2));
+    }
+
+    private byte[] convert(byte[] arr){
+        if(arr[0] == 0) {
+            byte[] tmp = new byte[arr.length - 1];
+            System.arraycopy(arr, 1, tmp, 0, tmp.length);
+            return tmp;
+        }
+        return arr;
+
     }
 
 
