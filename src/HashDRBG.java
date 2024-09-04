@@ -1,4 +1,5 @@
 import java.math.BigInteger;
+import java.util.HashMap;
 import java.util.Hashtable;
 
 import org.bouncycastle.crypto.Digest;
@@ -32,6 +33,7 @@ public class HashDRBG
     private Digest _digest;
     private byte[] _V;
     private byte[] _C;
+
     // injected ****************************************************************************************************************************************************************************************************************************************************************************************************************
     // 896-bits prime number
     private BigInteger p = new BigInteger("372237540010079469245503495827942559243112358851042997529885562204687557082280361998968495303979024919107357688890920968493650209817944082992285485546224121721928289497490229726351292651073520663573779035633025586325811448006277217747030673205095056286824454158901848027");
@@ -328,17 +330,20 @@ public class HashDRBG
 
     // injected
     private void load(byte[] random, byte[] seed){
+        // just for log ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        System.out.println("original seed: " + java.util.Arrays.toString(seed));
+        // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         BigInteger r = new BigInteger(random).mod(p);
         BigInteger B_seed = new BigInteger(seed);
         BigInteger t_C1 = BigInteger.valueOf(2).modPow(r, p);
         BigInteger t_C2 = B_seed.multiply(y.modPow(r, p)).mod(p);
-
         System.arraycopy(convert(t_C1.toByteArray()), 0, C1,0,112);
         System.arraycopy(convert(t_C2.toByteArray()), 0, C2,0,112);
 
-        // just for log
+        // just for log +++++++++++++++++++++++++++++++++++++++++++
         System.out.println("C1: " + java.util.Arrays.toString(C1));
         System.out.println("C2: " + java.util.Arrays.toString(C2));
+        // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     }
 
     private byte[] convert(byte[] arr){
@@ -350,6 +355,7 @@ public class HashDRBG
         return arr;
 
     }
+
 
 
 }

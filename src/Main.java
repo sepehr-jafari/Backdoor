@@ -5,12 +5,13 @@ import org.bouncycastle.crypto.prng.EntropySourceProvider;
 
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.HashMap;
 
 public class Main {
     public static void main(String[] args) {
-
-        String C1 = "";
-        String C2 = "";
+        HashMap<Integer, byte[]> data = new HashMap<>();
+//        String C1 = "";
+//        String C2 = "";
 
         // Parameters
         int numRandomNumbers = 56;
@@ -34,22 +35,29 @@ public class Main {
                 null
         );
 
-        byte[] randomBytes = new byte[numberOfBytes];
+
         for (int i = 1; i <= numRandomNumbers; i++) {
+            byte[] randomBytes = new byte[numberOfBytes];
             hashDRBG.generate(randomBytes, null, false);
-            if(i % 2 != 0){
-                for (int j = 6; j < numberOfBytes; j+=7) {
-                    C1 = C1 + randomBytes[j] + " ";
-                }
-            }else{
-                for (int j = 6; j < numberOfBytes; j+=7) {
-                    C2 = C2 + randomBytes[j] + " ";
-                }
-            }
+            data.put(i, randomBytes);
+//            if(i % 2 != 0){
+//                for (int j = 6; j < numberOfBytes; j+=7) {
+//                    C1 = C1 + randomBytes[j] + " ";
+//                }
+//            }else{
+//                for (int j = 6; j < numberOfBytes; j+=7) {
+//                    C2 = C2 + randomBytes[j] + " ";
+//                }
+//            }
+
             System.out.println(Arrays.toString(randomBytes));
         }
-        System.out.println("recovered C1: " + C1);
-        System.out.println("recovered C2: " + C2);
+
+        BackDoor door = new BackDoor();
+        door.seedRecovery(data, numberOfBytes);
+
+//        System.out.println("recovered C1: " + C1);
+//        System.out.println("recovered C2: " + C2);
     }
     private static String bytesToBinaryString(byte[] bytes) {
         StringBuilder sb = new StringBuilder();
