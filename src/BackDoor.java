@@ -10,12 +10,21 @@ public class BackDoor {
     private int C1_counter = 0;
     private byte[] C2 = new byte[112];
     private int C2_counter = 0;
+    private boolean C1_negative = false;
+    private boolean C2_negative = false;
 
     private void secretRecovery(HashMap<Integer, byte[]> data, int numberOfBytes){
         // The number of bytes leaked per number
         int bytePerNumber = (numberOfBytes/7);
         // The number of required  random numbers to guess the seed
         int requiredNumbers = (112/bytePerNumber)*2;
+
+        if(data.get(1)[0] == 85){
+            C1_negative = true;
+        }
+        if(data.get(2)[0] == 85){
+            C2_negative = true;
+        }
 
         for (int i = 1; i <= requiredNumbers; i++) {
             if (i % 2 != 0){
@@ -42,21 +51,51 @@ public class BackDoor {
         // first find our secrets
         secretRecovery(data, numberOfBytes);
         // just for log +++++++++++++++++++++++++
-        System.out.println("recovered C1:");
-        System.out.println(Arrays.toString(C1));
-
-        System.out.println("recovered C2:");
-        System.out.println(Arrays.toString(C2));
+//        System.out.println("recovered C1:");
+//        System.out.println(Arrays.toString(C1));
+//
+//        System.out.println("recovered C2:");
+//        System.out.println(Arrays.toString(C2));
         // ++++++++++++++++++++++++++++++++++++++
         // Use decryption algorithm
-        BigInteger I_C1 = new BigInteger(C1);
-        BigInteger I_C2 = new BigInteger(C2);
+        BigInteger I_C1;
+        BigInteger I_C2;
+        if(C1_negative){
+            C1_negative = false;
+            byte[] t_C1 = new byte[113];
+            t_C1[0] = 0;
+            System.arraycopy(C1, 0, t_C1, 1, t_C1.length-1);
+            System.out.println("C1:");
+            System.out.println(Arrays.toString(t_C1));
+            I_C1 = new BigInteger(t_C1);
+        }else {
+            System.out.println("C1:");
+            System.out.println(Arrays.toString(C1));
+            I_C1 = new BigInteger(C1);
+        }
+
+        if(C2_negative){
+            C2_negative = false;
+            byte[] t_C2 = new byte[113];
+            t_C2[0] = 0;
+            System.arraycopy(C2, 0, t_C2, 1, t_C2.length-1);
+            System.out.println("C2:");
+            System.out.println(Arrays.toString(t_C2));
+            I_C2 = new BigInteger(t_C2);
+        }else {
+            System.out.println("C2:");
+            System.out.println(Arrays.toString(C2));
+            I_C2 = new BigInteger(C2);
+        }
+
+
         // Compute shared secret s = c1^x mod p
         BigInteger s = I_C1.modPow(x, p);
         // Compute modular inverse of s mod p
         BigInteger sInv = s.modInverse(p);
         // Recover message m = c2 * sInv mod p
-        recoveredSeed = I_C2.multiply(sInv).mod(p).toByteArray();
+        BigInteger mul = I_C2.multiply(sInv).mod(p);
+        recoveredSeed = mul.toByteArray();
         System.out.println("recovered seed:");
         System.out.println(Arrays.toString(recoveredSeed));
 
