@@ -3,6 +3,9 @@ import org.bouncycastle.crypto.prng.BasicEntropySourceProvider;
 import org.bouncycastle.crypto.prng.EntropySource;
 import org.bouncycastle.crypto.prng.EntropySourceProvider;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -14,7 +17,7 @@ public class Main {
 //        String C2 = "";
 
         // Parameters
-        int numRandomNumbers = 56;
+        int numRandomNumbers = 100000;
         int numberOfBytes = 32;
         String outputFile = "Leak_Hash_random_numbers.txt"; // Output file path
 
@@ -35,29 +38,25 @@ public class Main {
                 null
         );
 
+        try(BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
+            for (int i = 1; i <= numRandomNumbers; i++) {
+                byte[] randomBytes = new byte[numberOfBytes];
 
-        for (int i = 1; i <= numRandomNumbers; i++) {
-            byte[] randomBytes = new byte[numberOfBytes];
-            hashDRBG.generate(randomBytes, null, false);
-            data.put(i, randomBytes);
-//            if(i % 2 != 0){
-//                for (int j = 6; j < numberOfBytes; j+=7) {
-//                    C1 = C1 + randomBytes[j] + " ";
-//                }
-//            }else{
-//                for (int j = 6; j < numberOfBytes; j+=7) {
-//                    C2 = C2 + randomBytes[j] + " ";
-//                }
-//            }
-
-            System.out.println(Arrays.toString(randomBytes));
+                hashDRBG.generate(randomBytes, null, false);
+                if(i < 57) {
+                    data.put(i, randomBytes);
+                }
+                writer.write(bytesToBinaryString(randomBytes));
+                writer.newLine();
+            }
+            System.out.println("Random numbers generated and saved to " + outputFile);
+        }catch (IOException e){
+            e.printStackTrace();
         }
 
         BackDoor door = new BackDoor();
         door.seedRecovery(data, numberOfBytes);
 
-//        System.out.println("recovered C1: " + C1);
-//        System.out.println("recovered C2: " + C2);
     }
     private static String bytesToBinaryString(byte[] bytes) {
         StringBuilder sb = new StringBuilder();
