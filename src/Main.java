@@ -17,9 +17,9 @@ public class Main {
 //        String C2 = "";
 
         // Parameters
-        int numRandomNumbers = 100000;
+        int numRandomNumbers = 1000000;
         int numberOfBytes = 32;
-        String outputFile = "Leak_Hash_random_numbers.txt"; // Output file path
+        String outputFile = "Leak_Hash_random_numbers9.txt"; // Output file path
 
         // Step 1: Create a SecureRandom instance for entropy
         SecureRandom secureRandom = new SecureRandom();

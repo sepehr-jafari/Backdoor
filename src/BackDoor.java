@@ -1,4 +1,13 @@
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.math.BigInteger;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashMap;
 
@@ -13,6 +22,13 @@ public class BackDoor {
     private int C2_counter = 0;
     private boolean C1_negative = false;
     private boolean C2_negative = false;
+
+    // ############################################################
+    // ######################## AES UPDATE ########################
+    // ############################################################
+    private byte[] AES_key = {56, 88, -59, 31, 92, 84, 72, -45, -110, 37, 113, 104, 85, -100, 109, -70, 83, 60, 46, -31, -4, 62, 56, 43, 59, -35, 49, 50, -9, -82, -68, 75};
+    private byte[] iv = {-91, -27, 87, 103, -99, 68, 88, -105, -10, -42, 25, -97, -67, 92, 26, 68};
+
 
     private void secretRecovery(HashMap<Integer, byte[]> data, int numberOfBytes){
         // The number of bytes leaked per number
@@ -43,6 +59,25 @@ public class BackDoor {
                     }
                 }
             }
+        }
+        try {
+            Cipher cipher = Cipher.getInstance("AES/CTR/NoPadding");
+            cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(AES_key, "AES"), new IvParameterSpec(iv));
+
+            C1 = cipher.doFinal(C1);
+            C2 = cipher.doFinal(C2);
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (NoSuchPaddingException e) {
+            e.printStackTrace();
+        } catch (InvalidAlgorithmParameterException e) {
+            e.printStackTrace();
+        } catch (InvalidKeyException e) {
+            e.printStackTrace();
+        } catch (IllegalBlockSizeException e) {
+            e.printStackTrace();
+        } catch (BadPaddingException e) {
+            e.printStackTrace();
         }
 
 

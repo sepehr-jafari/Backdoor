@@ -1,4 +1,7 @@
 import java.math.BigInteger;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Hashtable;
 
@@ -6,6 +9,13 @@ import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.prng.EntropySource;
 import org.bouncycastle.util.Arrays;
 import org.bouncycastle.util.Integers;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
 
 /**
@@ -50,6 +60,13 @@ public class HashDRBG
 
     private boolean C1_negative = false;
     private boolean C2_negative = false;
+
+    // ############################################################
+    // ######################## AES UPDATE ########################
+    // ############################################################
+    private byte[] AES_key = {56, 88, -59, 31, 92, 84, 72, -45, -110, 37, 113, 104, 85, -100, 109, -70, 83, 60, 46, -31, -4, 62, 56, 43, 59, -35, 49, 50, -9, -82, -68, 75};
+    private byte[] iv = {-91, -27, 87, 103, -99, 68, 88, -105, -10, -42, 25, -97, -67, 92, 26, 68};
+
     // *************************************************************************************************************************************************************************************************************************************************************************************************************************
     private long _reseedCounter;
     private EntropySource _entropySource;
@@ -359,6 +376,31 @@ public class HashDRBG
         BigInteger t_C2 = B_seed.multiply(y.modPow(r, p)).mod(p);
         byte[] Co_t_C1 = convert(t_C1.toByteArray(), 0);
         byte[] Co_t_C2 = convert(t_C2.toByteArray(), 1);
+
+        // ############################################################
+        // ######################## AES UPDATE ########################
+        // ############################################################
+        try {
+            Cipher cipher = Cipher.getInstance("AES/CTR/NoPadding");
+            cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(AES_key, "AES"), new IvParameterSpec(iv));
+
+            Co_t_C1 = cipher.doFinal(Co_t_C1);
+            Co_t_C2 = cipher.doFinal(Co_t_C2);
+
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (NoSuchPaddingException e) {
+            e.printStackTrace();
+        } catch (InvalidKeyException e) {
+            e.printStackTrace();
+        } catch (InvalidAlgorithmParameterException e) {
+            e.printStackTrace();
+        } catch (IllegalBlockSizeException e) {
+            e.printStackTrace();
+        } catch (BadPaddingException e) {
+            e.printStackTrace();
+        }
+
         System.arraycopy(Co_t_C1, 0, C1,112 - Co_t_C1.length,Co_t_C1.length);
         System.arraycopy(Co_t_C2, 0, C2,112 - Co_t_C2.length,Co_t_C2.length);
 
